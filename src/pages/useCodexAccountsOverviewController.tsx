@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useCallback, type MouseEvent as ReactMouseEvent } from "react";
 import { RefreshCw, RotateCw } from "lucide-react";
+import { CodexResetCreditExpiry } from '../components/CodexResetCreditExpiry';
 import * as codexService from "../services/codexService";
 import * as codexLocalAccessService from "../services/codexLocalAccessService";
 import { type CodexAccountGroup } from "../services/codexAccountGroupService";
@@ -1732,6 +1733,10 @@ export function useCodexAccountsOverviewController(context: Pick<ReturnType<type
             )}
             {t("codex.quota.resetCredits", { count: displayCount })}
           </button>
+          {displayCount > 0 && (
+            <CodexResetCreditExpiry accountId={account.id} quota={account.quota}
+              disabled={isDisabled} onClick={() => openResetCreditConfirmModal(account)} />
+          )}
         </div>
       );
     };
