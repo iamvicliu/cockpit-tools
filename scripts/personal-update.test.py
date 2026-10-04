@@ -180,6 +180,16 @@ class SafetyTests(unittest.TestCase):
                 updater.run(["npm", "test"], log=self.root / "timeout.log")
         stop.assert_called_once_with(process.pid, updater.signal.SIGTERM)
 
+    def test_swift_cache_is_retained_without_reusing_relocated_module_paths(self):
+        cache = self.root / "target/debug/build/cockpit-tools-fixture/out/swift-rs"
+        cache.mkdir(parents=True)
+        (cache / "cached-module").write_text("old absolute paths")
+        work = self.root / "run"
+        updater.preserve_swift_cache(self.root / "target", work)
+        retained = work / "previous-swift-cache/cockpit-tools-fixture/cached-module"
+        self.assertEqual(retained.read_text(), "old absolute paths")
+        self.assertFalse(cache.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

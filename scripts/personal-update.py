@@ -90,6 +90,15 @@ def bundle_info(bundle):
     return info
 
 
+def preserve_swift_cache(target, work):
+    # SwiftPM's cache holds absolute source/module paths. Fresh clones need fresh
+    # Swift artifacts even when Rust dependencies share a Cargo target directory.
+    for cache in Path(target).glob("debug/build/cockpit-tools-*/out/swift-rs"):
+        dest = Path(work) / "previous-swift-cache" / cache.parents[1].name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        os.rename(cache, dest)
+
+
 def stop_app(target):
     executable = str(target / "Contents/MacOS" / bundle_info(target)["CFBundleExecutable"])
     processes = run(["ps", "-axo", "pid=,comm="])
@@ -214,14 +223,14 @@ def prepare(root, tag, sidecar):
     if sidecar == "build":
         checks.append(("代理组件测试", ["npm", "run", "test:go"]))
     checks += [
-        ("前端构建", ["npm", "run", "build"]),
-        ("桌面构建", ["node", "node_modules/@tauri-apps/cli/tauri.js", "build", "--debug",
+        ("前端和桌面构建", ["node", "node_modules/@tauri-apps/cli/tauri.js", "build", "--debug",
                          "--bundles", "app", "--config", json.dumps({
-                             "build": {"beforeBuildCommand": ""},
                              "bundle": {"createUpdaterArtifacts": False}})]),
     ]
     for label, args in checks:
         print(label + "…", flush=True)
+        if args[0] == "node":
+            preserve_swift_cache(root / "cargo-target", work)
         run(args, cwd=repo, env=env, log=log)
     if run(["git", "status", "--porcelain"], cwd=repo):
         raise RuntimeError(f"构建修改了受版本控制的文件，请先审查：{repo}；未推送或安装。")
