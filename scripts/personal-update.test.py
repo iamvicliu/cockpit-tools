@@ -7,7 +7,7 @@ import plistlib
 import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 spec = importlib.util.spec_from_file_location("updater", Path(__file__).with_name("personal-update.py"))
 updater = importlib.util.module_from_spec(spec)
@@ -170,6 +170,15 @@ class SafetyTests(unittest.TestCase):
         updater.swap_bundle(staged, target, backup)
         self.assertTrue((target / "new").exists())
         self.assertTrue((backup / "old").exists())
+
+    def test_hung_command_stops_its_process_group_and_reports_failure(self):
+        process = Mock(pid=999999)
+        process.wait.side_effect = [subprocess.TimeoutExpired("fixture", 600), 0]
+        with patch.object(updater.subprocess, "Popen", return_value=process), \
+             patch.object(updater.os, "killpg") as stop:
+            with self.assertRaisesRegex(RuntimeError, "命令超时"):
+                updater.run(["npm", "test"], log=self.root / "timeout.log")
+        stop.assert_called_once_with(process.pid, updater.signal.SIGTERM)
 
 
 if __name__ == "__main__":

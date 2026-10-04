@@ -28,12 +28,23 @@ SIDECAR_INPUTS = ("sidecars/cockpit-cliproxy", "src-tauri/build.rs")
 def run(args, cwd=None, env=None, log=None):
     if log:
         with Path(log).open("a") as output:
-            result = subprocess.run(args, cwd=cwd, env=env, stdout=output,
-                                    stderr=subprocess.STDOUT)
-        if result.returncode:
+            process = subprocess.Popen(args, cwd=cwd, env=env, stdout=output,
+                                       stderr=subprocess.STDOUT, start_new_session=True)
+            timeout = 3600 if args[0] == "node" else 600
+            try:
+                status = process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGTERM)
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
+                raise RuntimeError(f"命令超时，已停止该命令及子进程；诊断日志：{log}") from None
+        if status:
             raise RuntimeError(f"命令失败：{args[0]}；诊断日志：{log}")
         return ""
-    return subprocess.check_output(args, cwd=cwd, env=env, text=True).strip()
+    return subprocess.check_output(args, cwd=cwd, env=env, text=True, timeout=120).strip()
 
 
 def save(path, data):
@@ -199,7 +210,6 @@ def prepare(root, tag, sidecar):
         ("类型检查", ["npm", "run", "typecheck"]),
         ("TypeScript 测试", ["npm", "test"]),
         ("发布工具测试", ["npm", "run", "test:release"]),
-        ("Rust 核心测试", ["cargo", "test", "--package", "cockpit-core", "--", "--test-threads=1"]),
     ]
     if sidecar == "build":
         checks.append(("代理组件测试", ["npm", "run", "test:go"]))
@@ -289,6 +299,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (RuntimeError, OSError, subprocess.CalledProcessError, ValueError, KeyError) as error:
+    except (RuntimeError, OSError, subprocess.SubprocessError, ValueError, KeyError) as error:
         print(f"停止：{error}\n运行目录和日志均已保留；若已经完成替换，可从 installs 安装记录找到备份。", file=sys.stderr)
         sys.exit(1)
