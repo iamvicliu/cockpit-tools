@@ -2445,7 +2445,7 @@ export function DashboardPage({
             <RotateCw size={13} />
             {t('codex.quota.resetCredits', { count: account.quota?.reset_credits_available })}
           </span>
-          <CodexResetCreditExpiry accountId={account.id} quota={account.quota}
+          <CodexResetCreditExpiry key={account.id} accountId={account.id} quota={account.quota}
             disabled={refreshing.has(account.id)} onClick={() => onNavigate('codex')} />
         </div>
       ) : undefined,

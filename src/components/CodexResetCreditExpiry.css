@@ -27,3 +27,8 @@
   border-left: 4px solid var(--danger);
 }
 .codex-reset-credit-expiry:disabled { cursor: wait; opacity: 0.7; }
+
+.codex-account-reset-expiry-line {
+  margin: 6px 0;
+  min-width: 0;
+}

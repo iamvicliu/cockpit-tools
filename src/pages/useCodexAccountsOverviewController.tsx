@@ -1698,7 +1698,7 @@ export function useCodexAccountsOverviewController(context: Pick<ReturnType<type
       [showAdditionalQuota, showCodeReviewQuota],
     );
   
-    const renderResetCreditControls = (account: CodexAccount) => {
+    const renderResetCreditControls = (account: CodexAccount, mode: 'controls' | 'expiry' = 'controls') => {
       if (isCodexApiKeyAccount(account) || isCodexAgentIdentityAccount(account))
         return null;
   
@@ -1710,6 +1710,14 @@ export function useCodexAccountsOverviewController(context: Pick<ReturnType<type
         availableCount ?? creditDetails.filter(isAvailableResetCredit).length;
       const isResetting = resettingResetCreditAccountId === account.id;
       const isDisabled = isResetting;
+      if (mode === 'expiry') {
+        return displayCount > 0 ? (
+          <div className="codex-account-reset-expiry-line">
+            <CodexResetCreditExpiry key={account.id} accountId={account.id} quota={account.quota}
+              disabled={isDisabled} onClick={() => openResetCreditConfirmModal(account)} />
+          </div>
+        ) : null;
+      }
       const titleText =
         displayCount > 0
           ? buildResetCreditsTitle(account, displayCount)
@@ -1733,10 +1741,6 @@ export function useCodexAccountsOverviewController(context: Pick<ReturnType<type
             )}
             {t("codex.quota.resetCredits", { count: displayCount })}
           </button>
-          {displayCount > 0 && (
-            <CodexResetCreditExpiry accountId={account.id} quota={account.quota}
-              disabled={isDisabled} onClick={() => openResetCreditConfirmModal(account)} />
-          )}
         </div>
       );
     };

@@ -19,10 +19,10 @@ export function CodexResetCreditExpiry({ accountId, quota, disabled, onClick }: 
   const [failed, setFailed] = useState(false);
   const [retry, setRetry] = useState(0);
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
+  const availableCount = quota?.reset_credits_available;
 
   useEffect(() => {
     let cancelled = false;
-    setSnapshot(null);
     setFailed(false);
     void getCodexResetCredits(accountId).then(result => {
       if (!cancelled) {
@@ -31,7 +31,7 @@ export function CodexResetCreditExpiry({ accountId, quota, disabled, onClick }: 
       }
     }).catch(() => { if (!cancelled) setFailed(true); });
     return () => { cancelled = true; };
-  }, [accountId, quota, retry]);
+  }, [accountId, availableCount, retry]);
 
   useEffect(() => {
     const tick = () => setNow(Math.floor(Date.now() / 1000));
